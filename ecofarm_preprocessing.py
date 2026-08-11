@@ -53,8 +53,8 @@ print(f"[중증도 인코딩]   none=0, 경증=1, 중등증=2, 중증=3")
 # ── 7. 피처 엔지니어링 ──────────────────────────────────────────────────────
 # 기상 × 밀도 상호작용
 df['heat_density']    = df['is_heatwave'] * df['density']
-df['cold_density']    = df['is_coldwave']  * df['density']
 df['rain_density']    = df['is_rain']      * df['density']
+# cold_density 제외 — 데이터 기간 내 한파 발생 0건으로 상수 피처
 
 # 시간/날씨 복합 위험
 df['holiday_summer']  = ((df['day_type_enc'] == 1) & (df['season'] == '여름')).astype(int)
@@ -74,7 +74,7 @@ cy = df.groupby('facility_id')['y'].first().mean()  # 27.50
 df['dist_from_center'] = np.sqrt((df['x'] - cx)**2 + (df['y'] - cy)**2).round(3)
 
 print(f"\n[피처 엔지니어링] 9개 피처 추가:")
-new_feats = ['heat_density','cold_density','rain_density','holiday_summer',
+new_feats = ['heat_density','rain_density','holiday_summer',
              'is_peak_hour','is_high_density','density_risk_ratio','weighted_risk',
              'dist_from_gate','dist_from_center']
 for f in new_feats:
@@ -95,9 +95,9 @@ for name, subset in splits.items():
 # ── 9. 컬럼 역할 요약 출력 ──────────────────────────────────────────────────
 FEATURE_COLS = [
     # 시간
-    'hour', 'month', 'dayofweek', 'is_weekend', 'is_peak_hour',
+    'hour', 'month', 'dayofweek', 'is_peak_hour',
     # 날씨
-    'is_rain', 'temperature', 'is_heatwave', 'is_coldwave',
+    'is_rain', 'temperature', 'is_heatwave',
     # 시설
     'capacity', 'x', 'y', 'base_risk',
     'fac_camping', 'fac_experience', 'fac_gate', 'fac_observatory', 'fac_playground',
@@ -106,10 +106,12 @@ FEATURE_COLS = [
     # 인코딩
     'day_type_enc', 'season_enc',
     # 엔지니어링
-    'heat_density', 'cold_density', 'rain_density',
+    'heat_density', 'rain_density',
     'holiday_summer', 'is_high_density',
     'density_risk_ratio', 'weighted_risk',
     'dist_from_gate', 'dist_from_center',
+    # 제외: is_weekend (day_type_enc와 상관 0.93 중복)
+    # 제외: is_coldwave, cold_density (기간 내 한파 0건 — 상수)
 ]
 
 print(f"\n[컬럼 요약]")
@@ -118,7 +120,14 @@ print(f"  [1단계] 타깃: emergency_occurred  |  누수 제외: emergency_coun
 print(f"  [2단계] 타깃: emergency_type_enc  |  대상: emergency_occurred==1 ({df['emergency_occurred'].sum()}건)")
 print(f"  [3단계] 타깃: severity_enc         |  대상: emergency_occurred==1 ({df['emergency_occurred'].sum()}건)")
 
-# ── 10. 저장 ────────────────────────────────────────────────────────────────
+# ── 10. 불필요 컬럼 제거 후 저장 ────────────────────────────────────────────
+# 누수 컬럼 제거 (사고 발생 후에야 알 수 있는 정보)
+df = df.drop(columns=['emergency_count', 'emergency_types', 'max_severity'])
+# 상수 피처 제거 (기간 내 한파 0건)
+df = df.drop(columns=['is_coldwave', 'cold_density'], errors='ignore')
+# 중복 피처 제거 (day_type_enc와 상관 0.93)
+df = df.drop(columns=['is_weekend'])
+
 output_path = 'ecofarm_preprocessed_master.csv'
 df.to_csv(output_path, index=False, encoding='utf-8-sig')
 

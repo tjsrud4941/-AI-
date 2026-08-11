@@ -1,0 +1,6 @@
+ecofarm_test_predictions.csv
+ecofarm_resource_schedule.csv
+*.png
+.ipynb_checkpoints/
+.vscode/
+.wrangler/

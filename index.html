@@ -109,6 +109,7 @@ main{max-width:1140px;margin:0 auto;padding:1.25rem;display:grid;grid-template-c
 .action-item:last-child{border-bottom:none}
 .action-num{background:var(--brand);color:#fff;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0;margin-top:1px}
 .action-cond{background:#fef3c7;color:#92400e;border-radius:3px;font-size:.6rem;padding:1px 4px;font-weight:600;margin-right:3px}
+.action-zone{background:#ede9fe;color:#5b21b6;border-radius:3px;font-size:.6rem;padding:1px 4px;font-weight:600;margin-right:3px}
 
 /* ── 인력·장비 ── */
 .staff-box{font-size:.8rem;display:flex;flex-direction:column;gap:.3rem}
@@ -345,6 +346,32 @@ const COND_EXTRA = {
   '강풍':'[강풍] 낙하물 위험 구역 통제, 야외 구조물·천막 긴급 점검',
   '야간':'[야간] 조명 확보 및 시야 불량 구역 안전선 설치, 야간 순찰 강화',
 };
+const ZONE_TEXT = {
+  'Z01':{acts:['입장 인원 실시간 집계 및 매표소 혼잡 시 우회 동선 확보','대기열 분산 안내 방송 실시'],
+         staff:'입장 통제 요원 2명 + 안내 요원 1명',equip:'입장 카운터, 안내 방송 장비, 비상 차단 바리케이드'},
+  'Z02':{acts:['광장 내 응급 동선 및 이동 약자 우선 통로 확보','행사·집회 인원 분산 유도'],
+         staff:'광장 순찰 요원 2명 + 응급 대기 1명',equip:'이동식 확성기, 응급처치 키트, 무선 통신 장비'},
+  'Z03':{acts:['화기 사용 현황 점검 및 야간 순찰 강화','캠핑존 간 완충 거리 유지 안내'],
+         staff:'야간 순찰 요원 1명 + 소방 대기 1명',equip:'소화기(구역별 1대), 야간 조명, 응급처치 키트'},
+  'Z04':{acts:['차량 및 화기 안전 상태 점검','캠핑존 입소 시 안전 브리핑 실시'],
+         staff:'구역 담당 요원 1명 + 소방 대기 1명',equip:'소화기(구역별 1대), 안전 삼각대, 응급처치 키트'},
+  'Z05':{acts:['글램핑 구조물 고정 상태 확인 및 야간 조명 점검','프라이빗 구역 야간 순찰 강화'],
+         staff:'글램핑 전담 요원 1명 + 야간 순찰 1명',equip:'구조물 고정 공구, 야간 조명, 비상 연락 장비'},
+  'Z06':{acts:['난간·발판 안전 점검 및 구조 하중 기준 관람 인원 제한','강풍 시 즉시 입장 통제'],
+         staff:'전망대 입장 통제 1명 + 안전 점검 요원 1명',equip:'풍속계, 안전 로프, 비상 대피 유도등'},
+  'Z07':{acts:['탐방객 입·출 체크 및 실시간 위치 파악','낙엽·습기 미끄럼 위험 구간 표시 및 안내'],
+         staff:'탐방로 순찰 요원 2명 (입구·내부)',equip:'GPS 위치 추적기, 구급용품, 반사 조끼'},
+  'Z08':{acts:['농기구 안전 사용 교육 실시','어린이 보호자 동반 확인 및 햇빛 노출 시간 제한 안내'],
+         staff:'체험 지도 요원 1명 + 안전 감독 1명',equip:'안전 장갑, 응급처치 키트, 차광 텐트·양산'},
+  'Z09':{acts:['실내 환기·냉난방 상태 점검','체험 도구 위생 관리 및 수용 인원 초과 시 대기 운영'],
+         staff:'시설 관리 요원 1명 + 체험 진행 요원 1명',equip:'체온 측정기, 실내 공기질 측정기, 응급처치 키트'},
+  'Z10':{acts:['견주 목줄·입마개 규정 안내 및 점검','대형견·소형견 구역 분리 상태 확인'],
+         staff:'반려동물 관리 요원 1명 + 응급 대기 1명',equip:'동물 분리 장벽, 응급처치 키트(교상 처치 포함), 비상 포획망'},
+  'Z11':{acts:['놀이기구 안전 점검 및 낙상 위험 구역 표시','보호자 동반 여부 확인'],
+         staff:'어린이 안전 요원 2명 + 응급 대기 1명',equip:'충격 흡수 매트, 응급처치 키트, 안전 울타리 점검 도구'},
+  'Z12':{acts:['수변 접근 통제선 및 미끄럼 방지 패드 상태 점검','구명환·구조 장비 비치 및 작동 확인'],
+         staff:'수변 안전 요원 1명 + 순찰 요원 1명',equip:'구명환, 구명줄, 미끄럼 방지 테이프, 응급처치 키트'},
+};
 const LEVEL_CLS = {'위험':'lv-danger','주의':'lv-warning','관찰':'lv-watch','안전':'lv-safe'};
 const LEVEL_ICON = {'위험':'🔴','주의':'🟡','관찰':'🔵','안전':'🟢'};
 const LEVEL_COLOR = {'위험':'#dc2626','주의':'#d97706','관찰':'#2563eb','안전':'#16a34a'};
@@ -454,19 +481,22 @@ function render(zone,score,level,pe,pk,pm,ps,conds){
 
   // 조치 목록
   const m=MANUAL[level];
+  const zt=ZONE_TEXT[zone.id]||{};
+  const zActs=zt.acts||[];
   const extraActs=conds.filter(c=>COND_EXTRA[c]).map(c=>COND_EXTRA[c]);
-  const allActs=[...m.actions,...extraActs];
+  const allActs=[...zActs,...m.actions,...extraActs];
   document.getElementById('actions-list').innerHTML=allActs.map((a,i)=>{
-    const isCond=i>=m.actions.length;
+    const isZone=i<zActs.length;
+    const isCond=i>=zActs.length+m.actions.length;
     return `<div class="action-item">
       <span class="action-num">${i+1}</span>
-      <span>${isCond?`<span class="action-cond">조건</span>`:''}${a}</span>
+      <span>${isZone?`<span class="action-zone">구역</span>`:''}${isCond?`<span class="action-cond">조건</span>`:''}${a}</span>
     </div>`;
   }).join('');
 
   // 인력·장비
   document.getElementById('staff-box').innerHTML=
-    `<div>👥 <b>${m.staff}</b></div><div style="color:var(--muted)">🧰 ${m.equip}</div>`;
+    `<div>👥 <b>${zt.staff||m.staff}</b></div><div style="color:var(--muted)">🧰 ${zt.equip||m.equip}</div>`;
 
   // 에스컬레이션
   document.getElementById('esc-info').textContent=m.esc;
